@@ -10,11 +10,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 let serviceAccount
 try {
-  serviceAccount = JSON.parse(
-    readFileSync(join(__dirname, 'service-account.json'), 'utf-8')
-  )
+  const envJson = process.env.FIREBASE_SERVICE_ACCOUNT
+  if (envJson) {
+    serviceAccount = JSON.parse(envJson)
+  } else {
+    serviceAccount = JSON.parse(
+      readFileSync(join(__dirname, 'service-account.json'), 'utf-8')
+    )
+  }
 } catch {
-  console.error('Missing server/service-account.json. See server/.env.example')
+  console.error('Missing Firebase service account. Set FIREBASE_SERVICE_ACCOUNT env var or add server/service-account.json')
   process.exit(1)
 }
 
