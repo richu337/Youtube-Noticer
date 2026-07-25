@@ -1,0 +1,17 @@
+{
+  "name": "YouTube Noticer",
+  "short_name": "YT Noticer",
+  "description": "Track your favorite YouTube series",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#16181D",
+  "theme_color": "#FF3D3D",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

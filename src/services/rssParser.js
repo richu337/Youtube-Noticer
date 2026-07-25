@@ -1,0 +1,111 @@
+import { getYoutubeThumbnail, getYoutubeVideoUrl } from '../utils/helpers'
+
+const parseRSSItem = (item) => {
+  const getNodeText = (entry, tag) => {
+    const node = entry.getElementsByTagName(tag)[0]
+    return node ? node.textContent : ''
+  }
+
+  const getNodeAttr = (entry, tag, attr) => {
+    const node = entry.getElementsByTagName(tag)[0]
+    return node ? node.getAttribute(attr) : ''
+  }
+
+  const videoId = getNodeText(item, 'yt:videoId') ||
+    getNodeAttr(item, 'yt:videoid', 'videoid') || ''
+
+  const title = getNodeText(item, 'title') || ''
+  const publishedAt = getNodeText(item, 'published') ||
+    getNodeText(item, 'pubDate') || ''
+  const author = getNodeText(item, 'author')?.name ||
+    getNodeText(item, 'author') || ''
+
+  return {
+    videoId,
+    title,
+    publishedAt,
+    author,
+    thumbnail: getYoutubeThumbnail(videoId),
+    youtubeUrl: getYoutubeVideoUrl(videoId),
+  }
+}
+
+export const fetchChannelRSS = async (channelId) => {
+  const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
+  const proxyUrl = import.meta.env.VITE_RSS_PROXY_URL
+
+  const fetchUrl = proxyUrl
+    ? `${proxyUrl}?url=${encodeURIComponent(rssUrl)}`
+    : `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`
+
+  try {
+    const response = await fetch(fetchUrl, { mode: 'cors' })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+    const xmlText = await response.text()
+    const parser = new DOMParser()
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
+    const items = xmlDoc.getElementsByTagName('entry')
+    const entries = []
+
+    for (let i = 0; i < items.length; i++) {
+      entries.push(parseRSSItem(items[i]))
+    }
+
+    return entries
+  } catch (error) {
+    console.error(`RSS fetch failed for channel ${channelId}:`, error)
+
+    try {
+      const response = await fetch(rssUrl)
+      if (!response.ok) throw new Error(`Direct fetch HTTP ${response.status}`)
+      const xmlText = await response.text()
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
+      const items = xmlDoc.getElementsByTagName('entry')
+      const entries = []
+
+      for (let i = 0; i < items.length; i++) {
+        entries.push(parseRSSItem(items[i]))
+      }
+
+      return entries
+    } catch (directError) {
+      console.error('Direct RSS fetch also failed:', directError)
+      return []
+    }
+  }
+}
+
+export const getEffectiveKeywords = (series) => {
+  const keywords = [...(series.keywords || [])]
+  if (series.name) {
+    const nameTrimmed = series.name.toLowerCase().trim()
+    const hasName = keywords.some((k) => k.toLowerCase().trim() === nameTrimmed)
+    if (!hasName) {
+      keywords.push(series.name)
+    }
+  }
+  return keywords
+}
+
+export const filterVideosByKeywords = (videos, keywords) => {
+  if (!keywords || keywords.length === 0) return videos
+
+  const lowerKeywords = keywords.map((k) => k.toLowerCase().trim())
+
+  return videos.filter((video) => {
+    const title = video.title.toLowerCase()
+    return lowerKeywords.some((keyword) => title.includes(keyword))
+  })
+}
+
+export const fetchAndFilterSeriesVideos = async (series) => {
+  if (!series.channelId) return []
+
+  const allVideos = await fetchChannelRSS(series.channelId)
+  const effectiveKeywords = getEffectiveKeywords(series)
+  const filtered = filterVideosByKeywords(allVideos, effectiveKeywords)
+
+  return filtered.slice(0, 10)
+}
