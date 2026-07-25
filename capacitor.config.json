@@ -3,8 +3,7 @@
   "appName": "YouTube Noticer",
   "webDir": "dist",
   "server": {
-    "url": "http://10.39.208.37:5173",
-    "androidScheme": "http"
+    "androidScheme": "https"
   },
   "plugins": {
     "SplashScreen": {

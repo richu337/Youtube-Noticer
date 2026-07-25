@@ -4,6 +4,7 @@ import { XMLParser } from 'fast-xml-parser'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import http from 'http'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -356,5 +357,16 @@ cron.schedule('*/30 * * * *', () => {
 cron.schedule('5,35 * * * *', () => {
   syncAnimeAndNotify().catch(console.error)
 })
+
+// Minimal HTTP server for Render (needs a port to keep Web Service alive)
+const PORT = process.env.PORT || 3000
+http
+  .createServer((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' })
+    res.end('OK')
+  })
+  .listen(PORT, () => {
+    console.log(`[Server] Health endpoint listening on port ${PORT}`)
+  })
 
 console.log('[Server] Push notification schedulers started (every 30 min)')
