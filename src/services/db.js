@@ -204,4 +204,52 @@ export const removePushToken = async (token) => {
   }
 }
 
+// ---- Anime ----
+export const animeRef = collection(db, 'anime')
+
+export const addAnime = async (data) => {
+  return await addDoc(animeRef, {
+    ...data,
+    lastNotifiedEpisode: 0,
+    createdAt: serverTimestamp(),
+  })
+}
+
+export const updateAnime = async (id, data) => {
+  return await updateDoc(doc(db, 'anime', id), data)
+}
+
+export const onAnimeSnapshot = (callback) => {
+  return onSnapshot(animeRef, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+  })
+}
+
+// ---- Anime Episodes ----
+export const animeEpisodesRef = collection(db, 'animeEpisodes')
+
+export const getAnimeEpisodes = async (animeDocId) => {
+  const q = query(
+    animeEpisodesRef,
+    where('animeDocId', '==', animeDocId),
+    orderBy('episode', 'desc')
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+export const onAnimeEpisodesSnapshot = (callback) => {
+  return onSnapshot(animeEpisodesRef, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+  })
+}
+
+export const deleteAnime = async (id) => {
+  const episodes = await getAnimeEpisodes(id)
+  for (const ep of episodes) {
+    await deleteDoc(doc(db, 'animeEpisodes', ep.id))
+  }
+  return await deleteDoc(doc(db, 'anime', id))
+}
+
 export { db }

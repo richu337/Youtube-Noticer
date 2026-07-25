@@ -5,12 +5,14 @@ import {
   Tags,
   Settings,
   RefreshCw,
+  Film,
 } from 'lucide-react'
 import { APP_NAME } from '../../utils/constants'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/series', icon: ListVideo, label: 'Series' },
+  { to: '/anime', icon: Film, label: 'Anime' },
   { to: '/categories', icon: Tags, label: 'Categories' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]

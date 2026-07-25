@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import SeriesManagement from './pages/SeriesManagement'
 import CategoriesPage from './pages/CategoriesPage'
 import SettingsPage from './pages/SettingsPage'
+import AnimeManagement from './pages/AnimeManagement'
 
 function useRegisterSW() {
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/series" element={<SeriesManagement />} />
             <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/anime" element={<AnimeManagement />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
