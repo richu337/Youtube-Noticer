@@ -9,6 +9,7 @@ import CategoriesPage from './pages/CategoriesPage'
 import SettingsPage from './pages/SettingsPage'
 import AnimeManagement from './pages/AnimeManagement'
 import NotificationHistory from './pages/NotificationHistory'
+import CalendarPage from './pages/Calendar'
 
 function useRegisterSW() {
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/anime" element={<AnimeManagement />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/notifications" element={<NotificationHistory />} />
+            <Route path="/calendar" element={<CalendarPage />} />
           </Route>
         </Routes>
       </ToastProvider>

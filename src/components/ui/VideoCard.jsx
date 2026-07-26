@@ -3,7 +3,7 @@ import { Play, Eye, EyeOff, ExternalLink } from 'lucide-react'
 import Badge from './Badge'
 import { timeAgo, truncateText } from '../../utils/helpers'
 
-export default function VideoCard({ video, onMarkWatched, onMarkUnwatched }) {
+export default function VideoCard({ video, onMarkWatched, onMarkUnwatched, onWatch }) {
   const [imgError, setImgError] = useState(false)
   const isNew = !video.watched
 
@@ -34,6 +34,7 @@ export default function VideoCard({ video, onMarkWatched, onMarkUnwatched }) {
           href={video.youtubeUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => onWatch?.(video)}
           className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40"
         >
           <div className="w-12 h-12 rounded-full bg-red-600/90 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
@@ -57,6 +58,7 @@ export default function VideoCard({ video, onMarkWatched, onMarkUnwatched }) {
             href={video.youtubeUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => onWatch?.(video)}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-colors"
           >
             <Play className="w-3.5 h-3.5" />

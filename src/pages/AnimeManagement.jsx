@@ -10,11 +10,13 @@ import { useAnimeEpisodes } from '../hooks/useAnimeEpisodes'
 import { searchAnime, fetchAiringSchedules } from '../services/anilist'
 import { addAnimeEpisodes, addNotificationHistory } from '../services/db'
 import { useToast } from '../components/ui/Toast'
+import { useContinueWatching } from '../hooks/useContinueWatching'
 
 export default function AnimeManagement() {
   const { animeList, loading, create, remove, update } = useAnime()
   const { getForAnime } = useAnimeEpisodes()
   const toast = useToast()
+  const { logWatch } = useContinueWatching()
   const [syncingAnime, setSyncingAnime] = useState(false)
 
   const [search, setSearch] = useState('')
@@ -129,6 +131,12 @@ export default function AnimeManagement() {
     }
   }
 
+  const handleUpdateProgress = async (animeId, episode) => {
+    await update(animeId, { lastWatchedEpisode: episode })
+    logWatch({ type: 'anime', animeDocId: animeId, seriesName: animeList.find((a) => a.id === animeId)?.title, episode })
+    toast(`Episode ${episode} marked as watched`, 'success')
+  }
+
   const handleDelete = async (id, title) => {
     if (!window.confirm(`Remove "${title}" from tracking?`)) return
     await remove(id)
@@ -198,6 +206,7 @@ export default function AnimeManagement() {
               anime={a}
               episodes={getForAnime(a.id)}
               onDelete={handleDelete}
+              onUpdateProgress={handleUpdateProgress}
             />
           ))}
         </div>

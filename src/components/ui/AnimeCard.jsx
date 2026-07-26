@@ -3,11 +3,14 @@ import { Trash2, ExternalLink, Film } from 'lucide-react'
 import Badge from './Badge'
 import { timeAgo, formatDate } from '../../utils/helpers'
 
-export default function AnimeCard({ anime, episodes = [], onDelete }) {
+export default function AnimeCard({ anime, episodes = [], onDelete, onUpdateProgress }) {
   const [imgError, setImgError] = useState(false)
   const latestEpisode = episodes.length > 0 ? episodes[0] : null
   const totalNotified = episodes.length
   const isCurrentlyAiring = anime.status === 'RELEASING'
+  const lastWatched = anime.lastWatchedEpisode || 0
+  const unwatched = totalNotified - lastWatched
+  const progress = totalNotified > 0 ? Math.round((lastWatched / totalNotified) * 100) : 0
 
   return (
     <div className="bg-dark-850/80 backdrop-blur-md border border-dark-700/50 rounded-2xl overflow-hidden hover:border-dark-600/50 transition-all group">
@@ -73,6 +76,18 @@ export default function AnimeCard({ anime, episodes = [], onDelete }) {
             )}
           </div>
 
+          {totalNotified > 0 && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-xs text-dark-400 mb-1">
+                <span>{unwatched > 0 ? `${unwatched} new` : 'All watched'}</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-dark-800 rounded-full overflow-hidden">
+                <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+          )}
+
           {latestEpisode && (
             <div className="mt-3 p-3 bg-dark-800/50 border border-dark-700/30 rounded-xl">
               <div className="flex items-center justify-between">
@@ -87,6 +102,14 @@ export default function AnimeCard({ anime, episodes = [], onDelete }) {
                 <p className="text-xs text-dark-500 mt-1">
                   Aired: {formatDate(latestEpisode.airingAt)}
                 </p>
+              )}
+              {lastWatched < latestEpisode.episode && (
+                <button
+                  onClick={() => onUpdateProgress?.(anime.id, latestEpisode.episode)}
+                  className="mt-2 w-full py-1.5 text-xs font-medium bg-purple-600/20 text-purple-400 border border-purple-600/30 rounded-lg hover:bg-purple-600/30 transition-colors"
+                >
+                  Mark episode {latestEpisode.episode} as watched
+                </button>
               )}
             </div>
           )}

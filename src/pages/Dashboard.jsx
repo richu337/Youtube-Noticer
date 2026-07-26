@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RefreshCw, Hash } from 'lucide-react'
+import { RefreshCw, Hash, Play, Film, ExternalLink, Clock } from 'lucide-react'
 import SeriesCard from '../components/ui/SeriesCard'
 import { DashboardSkeleton } from '../components/ui/LoadingSkeleton'
 import EmptyState from '../components/ui/EmptyState'
@@ -12,6 +12,8 @@ import { useRSSSync } from '../hooks/useRSSSync'
 import { getEffectiveKeywords } from '../services/rssParser'
 import { useToast } from '../components/ui/Toast'
 import { playNotificationSound } from '../utils/sound'
+import { useContinueWatching } from '../hooks/useContinueWatching'
+import { updateAnime } from '../services/db'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -20,6 +22,7 @@ export default function Dashboard() {
   const { videos, markWatched, markUnwatched, getForSeries } = useVideos()
   const { syncing, syncSeries } = useRSSSync()
   const toast = useToast()
+  const { items: continueWatching, logWatch } = useContinueWatching()
 
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -129,6 +132,28 @@ export default function Dashboard() {
     toast(`${seriesItem.name} updated!`, 'success')
   }, [syncSeries, toast])
 
+  const handleWatch = useCallback((video) => {
+    logWatch({
+      type: 'youtube',
+      seriesId: video.seriesId,
+      seriesName: seriesMap[video.seriesId]?.name || '',
+      videoId: video.videoId,
+      title: video.title,
+      thumbnail: video.thumbnail,
+      youtubeUrl: video.youtubeUrl,
+    })
+  }, [logWatch, seriesMap])
+
+  const handleUpdateAnimeProgress = async (animeId, episode) => {
+    await updateAnime(animeId, { lastWatchedEpisode: episode })
+    logWatch({
+      type: 'anime',
+      animeDocId: animeId,
+      episode,
+    })
+    toast(`Episode ${episode} marked as watched`, 'success')
+  }
+
   const handleDelete = useCallback(async (id) => {
     const confirmed = window.confirm('Delete this series and all its videos?')
     if (!confirmed) return
@@ -153,6 +178,64 @@ export default function Dashboard() {
           {filteredSeries.length} series
         </span>
       </div>
+
+      {continueWatching.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-4 h-4 text-dark-400" />
+            <h2 className="text-sm font-semibold text-dark-200 uppercase tracking-wider">Continue Watching</h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+            {continueWatching.slice(0, 5).map((item) => (
+              <div
+                key={item.id}
+                className="flex-shrink-0 w-56 bg-dark-850/80 backdrop-blur-md border border-dark-700/50 rounded-xl overflow-hidden hover:border-dark-600/50 transition-all"
+              >
+                {item.type === 'youtube' && (
+                  <>
+                    <div className="aspect-video bg-dark-800 relative overflow-hidden">
+                      {item.thumbnail ? (
+                        <img src={item.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Play className="w-8 h-8 text-dark-600" />
+                        </div>
+                      )}
+                      <a
+                        href={item.youtubeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-red-600/90 flex items-center justify-center">
+                          <ExternalLink className="w-4 h-4 text-white" />
+                        </div>
+                      </a>
+                    </div>
+                    <div className="p-3">
+                      <p className="text-xs font-medium text-dark-100 truncate">{item.title}</p>
+                      <p className="text-[10px] text-dark-400 mt-0.5 truncate">{item.seriesName}</p>
+                    </div>
+                  </>
+                )}
+                {item.type === 'anime' && (
+                  <div className="p-3 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-purple-500/15 flex items-center justify-center flex-shrink-0">
+                      <Film className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-dark-100 truncate">{item.seriesName}</p>
+                      {item.episode && (
+                        <p className="text-[10px] text-dark-400">Episode {item.episode}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <FilterBar
         search={search}
@@ -194,6 +277,7 @@ export default function Dashboard() {
                 onRefresh={handleRefresh}
                 onDelete={handleDelete}
                 onViewAll={() => navigate(`/series/${s.id}`)}
+                onWatch={handleWatch}
               />
             ))}
           </div>

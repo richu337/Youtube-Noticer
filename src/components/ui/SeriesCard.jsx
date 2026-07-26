@@ -15,6 +15,7 @@ export default function SeriesCard({
   onRefresh,
   onDelete,
   onViewAll,
+  onWatch,
 }) {
   const [expanded, setExpanded] = useState(false)
   const color = getCategoryColor(categoryName || '')
@@ -64,6 +65,7 @@ export default function SeriesCard({
                 video={video}
                 onMarkWatched={onMarkWatched}
                 onMarkUnwatched={onMarkUnwatched}
+                onWatch={onWatch}
               />
             ))}
             {totalVideos > 3 && (
@@ -78,6 +80,21 @@ export default function SeriesCard({
         ) : (
           <div className="mt-3 py-6 text-center text-dark-500 text-sm border border-dashed border-dark-700/30 rounded-xl">
             No videos yet. Pull to refresh.
+          </div>
+        )}
+
+        {totalVideos > 0 && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-xs text-dark-400 mb-1">
+              <span>{videos.filter((v) => v.watched).length} of {totalVideos} watched</span>
+              <span>{Math.round((videos.filter((v) => v.watched).length / totalVideos) * 100)}%</span>
+            </div>
+            <div className="w-full h-1.5 bg-dark-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-red-500 rounded-full transition-all"
+                style={{ width: `${(videos.filter((v) => v.watched).length / totalVideos) * 100}%` }}
+              />
+            </div>
           </div>
         )}
 
