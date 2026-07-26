@@ -82,6 +82,20 @@ export const getCategoryColor = (name) => {
   return categoryColors[name] || '#6b7280'
 }
 
+export const resolveChannelHandle = async (handle) => {
+  try {
+    const res = await fetch(`https://www.youtube.com/@${handle}`, {
+      headers: { 'Accept-Language': 'en' },
+    })
+    if (!res.ok) return null
+    const html = await res.text()
+    const match = html.match(/"channelId":"(UC[a-zA-Z0-9_-]{10,})"/)
+    return match ? match[1] : null
+  } catch {
+    return null
+  }
+}
+
 export const cn = (...classes) => {
   return classes.filter(Boolean).join(' ')
 }

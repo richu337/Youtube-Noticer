@@ -10,9 +10,6 @@ import {
   Volume2,
   Link,
   CalendarDays,
-  Search,
-  Loader2,
-  Users,
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import SearchBar from '../components/filters/SearchBar'
@@ -21,8 +18,7 @@ import EmptyState from '../components/ui/EmptyState'
 import { useSeries } from '../hooks/useSeries'
 import { useCategories } from '../hooks/useCategories'
 import { useToast } from '../components/ui/Toast'
-import { generateRssUrl, extractChannelIdFromUrl } from '../utils/helpers'
-import { searchChannels } from '../services/youtubeSearch'
+import { generateRssUrl, extractChannelIdFromUrl, resolveChannelHandle } from '../utils/helpers'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -46,10 +42,6 @@ export default function SeriesManagement() {
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState([])
-  const [searching, setSearching] = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
 
   const filteredSeries = useMemo(() => {
     let result = [...series]
@@ -70,9 +62,6 @@ export default function SeriesManagement() {
   const openCreate = () => {
     setEditing(null)
     setForm(emptyForm)
-    setSearchQuery('')
-    setSearchResults([])
-    setShowSearch(false)
     setShowModal(true)
   }
 
@@ -87,9 +76,6 @@ export default function SeriesManagement() {
       notificationSoundUrl: s.notificationSoundUrl || '',
       showDays: s.showDays || [],
     })
-    setSearchQuery('')
-    setSearchResults([])
-    setShowSearch(false)
     setShowModal(true)
   }
 
@@ -136,40 +122,21 @@ export default function SeriesManagement() {
     toast('Series deleted', 'info')
   }
 
-  const handleChannelIdChange = (value) => {
+  const handleChannelIdChange = async (value) => {
     const extracted = extractChannelIdFromUrl(value)
-    const channelId = extracted || value
-    const channelName = value.includes('youtube.com') && value.includes('/@') && !form.channelName
-      ? value.split('/@').pop().split('/')[0]
-      : form.channelName
-    setForm({ ...form, channelId, channelName, rssUrl: generateRssUrl(channelId) })
-  }
-
-  const handleSearchYouTube = async (e) => {
-    e?.preventDefault()
-    if (!searchQuery.trim()) return
-    setSearching(true)
-    try {
-      const results = await searchChannels(searchQuery.trim())
-      setSearchResults(results)
-    } catch (err) {
-      toast(err.message, 'error')
-      setSearchResults([])
-    } finally {
-      setSearching(false)
+    let channelId = extracted || value
+    let channelName = form.channelName
+    if (value.includes('youtube.com') && value.includes('/@') && !form.channelName) {
+      channelName = value.split('/@').pop().split('/')[0]
     }
-  }
-
-  const handleSelectChannel = (channel) => {
-    setForm({
-      ...form,
-      channelId: channel.id,
-      channelName: channel.title,
-      rssUrl: generateRssUrl(channel.id),
-    })
-    setShowSearch(false)
-    setSearchResults([])
-    setSearchQuery('')
+    if (channelId.startsWith('@')) {
+      const resolved = await resolveChannelHandle(channelId.slice(1))
+      if (resolved) {
+        channelId = resolved
+        if (!form.channelName) channelName = channelId
+      }
+    }
+    setForm({ ...form, channelId, channelName, rssUrl: generateRssUrl(channelId) })
   }
 
   const toggleDay = (day) => {
@@ -347,73 +314,17 @@ export default function SeriesManagement() {
             <label className="block text-sm font-medium text-dark-300 mb-1.5">
               YouTube Channel ID *
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={form.channelId}
-                onChange={(e) => handleChannelIdChange(e.target.value)}
-                className="flex-1 px-4 py-2.5 bg-dark-800 border border-dark-700/50 rounded-xl text-sm text-dark-100 placeholder-dark-500 focus:outline-none focus:border-red-500/50 transition-all"
-                placeholder="Channel ID, URL, or @handle"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowSearch(!showSearch)}
-                className="px-3 py-2.5 bg-dark-800 hover:bg-dark-700 border border-dark-700/50 rounded-xl text-dark-400 hover:text-dark-200 transition-all"
-                title="Search YouTube"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-            </div>
+            <input
+              type="text"
+              value={form.channelId}
+              onChange={(e) => handleChannelIdChange(e.target.value)}
+              className="w-full px-4 py-2.5 bg-dark-800 border border-dark-700/50 rounded-xl text-sm text-dark-100 placeholder-dark-500 focus:outline-none focus:border-red-500/50 transition-all"
+              placeholder="Channel ID, URL, or @handle"
+              required
+            />
             <p className="text-xs text-dark-500 mt-1.5">
-              Paste a channel URL (youtube.com/channel/..., /@handle), or enter the Channel ID directly.
+              Paste a channel URL (youtube.com/channel/..., /@handle), or enter the Channel ID directly. @handles are auto-resolved.
             </p>
-
-            {showSearch && (
-              <div className="mt-3 p-3 bg-dark-800/50 border border-dark-700/30 rounded-xl">
-                <form onSubmit={handleSearchYouTube} className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search channel name..."
-                    className="flex-1 px-3 py-2 bg-dark-800 border border-dark-700/50 rounded-lg text-sm text-dark-100 placeholder-dark-500 focus:outline-none focus:border-red-500/50"
-                  />
-                  <button
-                    type="submit"
-                    disabled={searching || !searchQuery.trim()}
-                    className="px-3 py-2 bg-red-600 hover:bg-red-500 disabled:bg-dark-700 text-white rounded-lg text-sm font-medium transition-all"
-                  >
-                    {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  </button>
-                </form>
-                <div className="max-h-48 overflow-y-auto space-y-2">
-                  {searchResults.length === 0 && !searching && searchQuery && (
-                    <p className="text-center text-dark-500 py-4 text-sm">No channels found.</p>
-                  )}
-                  {searchResults.map((ch) => (
-                    <button
-                      key={ch.id}
-                      type="button"
-                      onClick={() => handleSelectChannel(ch)}
-                      className="flex items-center gap-3 w-full p-2.5 bg-dark-800/50 border border-dark-700/30 rounded-lg hover:border-dark-600/50 transition-all text-left"
-                    >
-                      {ch.thumbnail ? (
-                        <img src={ch.thumbnail} alt="" className="w-9 h-9 rounded-full object-cover bg-dark-700 flex-shrink-0" />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0">
-                          <Youtube className="w-4 h-4 text-dark-500" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-dark-100 truncate">{ch.title}</p>
-                        <p className="text-xs text-dark-500 truncate">{ch.id}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           <div>
