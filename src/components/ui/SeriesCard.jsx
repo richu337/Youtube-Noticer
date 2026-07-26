@@ -8,11 +8,13 @@ export default function SeriesCard({
   series,
   categoryName,
   videos = [],
+  totalVideos = 0,
   onToggleFavorite,
   onMarkWatched,
   onMarkUnwatched,
   onRefresh,
   onDelete,
+  onViewAll,
 }) {
   const [expanded, setExpanded] = useState(false)
   const color = getCategoryColor(categoryName || '')
@@ -56,7 +58,7 @@ export default function SeriesCard({
 
         {videos.length > 0 ? (
           <div className="space-y-3 mt-3">
-            {videos.slice(0, 2).map((video) => (
+            {videos.slice(0, 3).map((video) => (
               <VideoCard
                 key={video.id}
                 video={video}
@@ -64,6 +66,14 @@ export default function SeriesCard({
                 onMarkUnwatched={onMarkUnwatched}
               />
             ))}
+            {totalVideos > 3 && (
+              <button
+                onClick={onViewAll}
+                className="w-full py-2 text-xs font-medium text-dark-400 hover:text-dark-200 bg-dark-800/50 hover:bg-dark-800 rounded-xl transition-colors"
+              >
+                View all {totalVideos} videos &rarr;
+              </button>
+            )}
           </div>
         ) : (
           <div className="mt-3 py-6 text-center text-dark-500 text-sm border border-dashed border-dark-700/30 rounded-xl">

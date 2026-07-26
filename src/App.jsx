@@ -4,9 +4,11 @@ import { ToastProvider } from './components/ui/Toast'
 import AppLayout from './components/layout/AppLayout'
 import Dashboard from './pages/Dashboard'
 import SeriesManagement from './pages/SeriesManagement'
+import SeriesVideos from './pages/SeriesVideos'
 import CategoriesPage from './pages/CategoriesPage'
 import SettingsPage from './pages/SettingsPage'
 import AnimeManagement from './pages/AnimeManagement'
+import NotificationHistory from './pages/NotificationHistory'
 
 function useRegisterSW() {
   useEffect(() => {
@@ -37,9 +39,11 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/series" element={<SeriesManagement />} />
+            <Route path="/series/:id" element={<SeriesVideos />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/anime" element={<AnimeManagement />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/notifications" element={<NotificationHistory />} />
           </Route>
         </Routes>
       </ToastProvider>

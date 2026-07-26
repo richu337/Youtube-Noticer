@@ -244,12 +244,39 @@ export const onAnimeEpisodesSnapshot = (callback) => {
   })
 }
 
+export const addAnimeEpisodes = async (data) => {
+  const q = query(
+    animeEpisodesRef,
+    where('animeDocId', '==', data.animeDocId),
+    where('episode', '==', data.episode),
+    limit(1)
+  )
+  const snap = await getDocs(q)
+  if (!snap.empty) {
+    return { id: snap.docs[0].id, ...snap.docs[0].data() }
+  }
+  return await addDoc(animeEpisodesRef, {
+    ...data,
+    createdAt: serverTimestamp(),
+  })
+}
+
 export const deleteAnime = async (id) => {
   const episodes = await getAnimeEpisodes(id)
   for (const ep of episodes) {
     await deleteDoc(doc(db, 'animeEpisodes', ep.id))
   }
   return await deleteDoc(doc(db, 'anime', id))
+}
+
+// ---- Notification History ----
+export const notificationHistoryRef = collection(db, 'notificationHistory')
+
+export const addNotificationHistory = async (data) => {
+  return await addDoc(notificationHistoryRef, {
+    ...data,
+    createdAt: serverTimestamp(),
+  })
 }
 
 export { db }

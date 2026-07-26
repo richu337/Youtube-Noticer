@@ -13,6 +13,10 @@ export default function AppLayout() {
   const { settings } = useSettings()
   const toast = useToast()
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', settings.theme || 'dark')
+  }, [settings.theme])
+
   const handleSync = useCallback(async () => {
     if (syncing || series.length === 0) return
     toast('Starting RSS sync...', 'info')

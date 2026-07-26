@@ -21,6 +21,48 @@ query ($search: String, $page: Int) {
 }
 `
 
+const AIRING_QUERY = `
+query ($ids: [Int]) {
+  Page(page: 1, perPage: 50) {
+    media(id_in: $ids, type: ANIME) {
+      id
+      title { romaji english }
+      episodes
+      status
+      nextAiringEpisode {
+        airingAt
+        episode
+      }
+      airingSchedule(notYetAired: false, perPage: 10) {
+        nodes {
+          airingAt
+          episode
+        }
+      }
+    }
+  }
+}
+`
+
+export async function fetchAiringSchedules(anilistIds) {
+  if (!anilistIds.length) return []
+  const response = await fetch(ANILIST_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      query: AIRING_QUERY,
+      variables: { ids: anilistIds },
+    }),
+  })
+  if (!response.ok) throw new Error(`AniList API error: ${response.status}`)
+  const json = await response.json()
+  if (json.errors) throw new Error(json.errors[0].message)
+  return json.data.Page.media
+}
+
 export async function searchAnime(query, page = 1) {
   const response = await fetch(ANILIST_API, {
     method: 'POST',

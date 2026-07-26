@@ -8,18 +8,18 @@ export default {
     extend: {
       colors: {
         dark: {
-          50: '#f0f0f0',
-          100: '#d9d9d9',
-          200: '#bfbfbf',
-          300: '#a6a6a6',
-          400: '#8c8c8c',
-          500: '#737373',
-          600: '#595959',
-          700: '#404040',
-          800: '#262626',
-          850: '#1a1a1a',
-          900: '#0f0f0f',
-          950: '#080808',
+          50: 'rgb(var(--dark-50) / <alpha-value>)',
+          100: 'rgb(var(--dark-100) / <alpha-value>)',
+          200: 'rgb(var(--dark-200) / <alpha-value>)',
+          300: 'rgb(var(--dark-300) / <alpha-value>)',
+          400: 'rgb(var(--dark-400) / <alpha-value>)',
+          500: 'rgb(var(--dark-500) / <alpha-value>)',
+          600: 'rgb(var(--dark-600) / <alpha-value>)',
+          700: 'rgb(var(--dark-700) / <alpha-value>)',
+          800: 'rgb(var(--dark-800) / <alpha-value>)',
+          850: 'rgb(var(--dark-850) / <alpha-value>)',
+          900: 'rgb(var(--dark-900) / <alpha-value>)',
+          950: 'rgb(var(--dark-950) / <alpha-value>)',
         }
       },
       backdropBlur: {

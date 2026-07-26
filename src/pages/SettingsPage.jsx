@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Settings,
   Bell,
@@ -12,6 +13,9 @@ import {
   Volume2,
   Link,
   Send,
+  Sun,
+  Moon,
+  History,
 } from 'lucide-react'
 import { useSettings } from '../hooks/useSettings'
 import { usePushNotifications } from '../hooks/usePushNotifications'
@@ -75,6 +79,7 @@ function PushNotificationCard() {
 }
 
 export default function SettingsPage() {
+  const navigate = useNavigate()
   const { settings, update } = useSettings()
   const toast = useToast()
 
@@ -140,6 +145,31 @@ export default function SettingsPage() {
                 />
               </button>
             </label>
+
+            <label className="flex items-center justify-between cursor-pointer pt-2 border-t border-dark-700/20">
+              <div className="flex items-center gap-2">
+                {settings.theme === 'light' ? <Sun className="w-4 h-4 text-dark-400" /> : <Moon className="w-4 h-4 text-dark-400" />}
+                <span className="text-sm text-dark-300">Theme</span>
+              </div>
+              <button
+                onClick={() => handleToggle('theme', settings.theme === 'light' ? 'dark' : 'light')}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  settings.theme === 'light' ? 'bg-yellow-500' : 'bg-dark-700'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform flex items-center justify-center ${
+                    settings.theme === 'light' ? 'translate-x-5' : ''
+                  }`}
+                >
+                  {settings.theme === 'light' ? (
+                    <Sun className="w-3 h-3 text-yellow-500" />
+                  ) : (
+                    <Moon className="w-3 h-3 text-dark-600" />
+                  )}
+                </span>
+              </button>
+            </label>
           </div>
         </SettingCard>
 
@@ -197,6 +227,20 @@ export default function SettingsPage() {
         </SettingCard>
 
         <PushNotificationCard />
+
+        <SettingCard
+          icon={History}
+          title="Notification History"
+          description="View a log of past notifications."
+        >
+          <button
+            onClick={() => navigate('/notifications')}
+            className="w-full flex items-center justify-between px-4 py-3 bg-dark-800/50 border border-dark-700/30 rounded-xl hover:border-dark-600/50 transition-all text-sm text-dark-300 hover:text-dark-100"
+          >
+            <span>View notification history</span>
+            <History className="w-4 h-4" />
+          </button>
+        </SettingCard>
 
         <SettingCard
           icon={Database}

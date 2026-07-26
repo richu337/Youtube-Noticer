@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { getDocs } from 'firebase/firestore'
 import { fetchAndFilterSeriesVideos, filterVideosByKeywords, getEffectiveKeywords } from '../services/rssParser'
-import { addVideo, updateSeries, deleteVideo, getVideosBySeries, videosRef } from '../services/db'
+import { addVideo, updateSeries, deleteVideo, getVideosBySeries, videosRef, addNotificationHistory } from '../services/db'
 import { playNotificationSound } from '../utils/sound'
 
 export function useRSSSync() {
@@ -35,8 +35,19 @@ export function useRSSSync() {
       }
     }
 
-    if (savedVideos.length > 0 && series.notificationSoundUrl) {
-      playNotificationSound(series.notificationSoundUrl)
+    if (savedVideos.length > 0) {
+      if (series.notificationSoundUrl) {
+        playNotificationSound(series.notificationSoundUrl)
+      }
+      for (const v of savedVideos) {
+        addNotificationHistory({
+          type: 'new_video',
+          seriesId: series.id,
+          seriesName: series.name,
+          title: v.title ? `New video: ${v.title.substring(0, 80)}` : 'New video found',
+          message: `${series.name} - ${v.channelName || series.channelName}`,
+        }).catch(() => {})
+      }
     }
 
     const effectiveKeywords = getEffectiveKeywords(series)

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { RefreshCw, Hash } from 'lucide-react'
 import SeriesCard from '../components/ui/SeriesCard'
 import { DashboardSkeleton } from '../components/ui/LoadingSkeleton'
@@ -13,6 +14,7 @@ import { useToast } from '../components/ui/Toast'
 import { playNotificationSound } from '../utils/sound'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const { series, loading: seriesLoading, toggleFav, remove } = useSeries()
   const { categories } = useCategories()
   const { videos, markWatched, markUnwatched, getForSeries } = useVideos()
@@ -54,7 +56,7 @@ export default function Dashboard() {
         )
       }
       seriesVideos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-      map[key] = seriesVideos.slice(0, 2)
+      map[key] = seriesVideos.slice(0, 5)
     }
     return map
   }, [videos, seriesMap])
@@ -185,11 +187,13 @@ export default function Dashboard() {
                 series={s}
                 categoryName={categoryMap[s.categoryId]}
                 videos={videosBySeries[s.id] || []}
+                totalVideos={videos.filter((v) => v.seriesId === s.id).length}
                 onToggleFavorite={toggleFav}
                 onMarkWatched={markWatched}
                 onMarkUnwatched={markUnwatched}
                 onRefresh={handleRefresh}
                 onDelete={handleDelete}
+                onViewAll={() => navigate(`/series/${s.id}`)}
               />
             ))}
           </div>

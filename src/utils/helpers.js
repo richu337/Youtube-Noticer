@@ -10,6 +10,26 @@ export const extractChannelId = (rssUrl) => {
   return match ? match[1] : ''
 }
 
+export const extractChannelIdFromUrl = (input) => {
+  if (!input) return null
+  const trimmed = input.trim()
+  const channelMatch = trimmed.match(
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/channel\/([a-zA-Z0-9_-]{10,})/
+  )
+  if (channelMatch) return channelMatch[1]
+  const handleMatch = trimmed.match(
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/@([a-zA-Z0-9_-]+)/
+  )
+  if (handleMatch) return `@${handleMatch[1]}`
+  const customMatch = trimmed.match(
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/c\/([a-zA-Z0-9_-]+)/
+  )
+  if (customMatch) return customMatch[1]
+  const rawIdMatch = trimmed.match(/^([a-zA-Z0-9_-]{10,})$/)
+  if (rawIdMatch && !trimmed.includes(' ')) return rawIdMatch[1]
+  return null
+}
+
 export const timeAgo = (dateString) => {
   if (!dateString) return ''
   try {

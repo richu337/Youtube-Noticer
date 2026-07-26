@@ -17,6 +17,7 @@ export function useSettings() {
     autoCleanupDays: 30,
     notificationsEnabled: false,
     notificationSoundUrl: '',
+    theme: 'dark',
   })
   const [loading, setLoading] = useState(true)
 

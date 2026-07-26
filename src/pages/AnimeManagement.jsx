@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search, Film, Loader2 } from 'lucide-react'
+import { Plus, Search, Film, Loader2, RefreshCw } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import SearchBar from '../components/filters/SearchBar'
 import EmptyState from '../components/ui/EmptyState'
@@ -7,13 +7,15 @@ import AnimeCard from '../components/ui/AnimeCard'
 import { DashboardSkeleton } from '../components/ui/LoadingSkeleton'
 import { useAnime } from '../hooks/useAnime'
 import { useAnimeEpisodes } from '../hooks/useAnimeEpisodes'
-import { searchAnime } from '../services/anilist'
+import { searchAnime, fetchAiringSchedules } from '../services/anilist'
+import { addAnimeEpisodes, addNotificationHistory } from '../services/db'
 import { useToast } from '../components/ui/Toast'
 
 export default function AnimeManagement() {
-  const { animeList, loading, create, remove } = useAnime()
+  const { animeList, loading, create, remove, update } = useAnime()
   const { getForAnime } = useAnimeEpisodes()
   const toast = useToast()
+  const [syncingAnime, setSyncingAnime] = useState(false)
 
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -27,6 +29,55 @@ export default function AnimeManagement() {
     const q = search.toLowerCase()
     return animeList.filter((a) => a.title?.toLowerCase().includes(q))
   }, [animeList, search])
+
+  const handleSyncAnime = async () => {
+    if (syncingAnime || animeList.length === 0) return
+    setSyncingAnime(true)
+    toast('Checking for new anime episodes...', 'info')
+    try {
+      const anilistIds = animeList.map((a) => a.anilistId).filter(Boolean)
+      const mediaList = await fetchAiringSchedules(anilistIds)
+      let totalNew = 0
+      for (const media of mediaList) {
+        const tracked = animeList.find((a) => a.anilistId === media.id)
+        if (!tracked) continue
+        const schedule = media.airingSchedule?.nodes || []
+        for (const ep of schedule) {
+          if (ep.episode > (tracked.lastNotifiedEpisode || 0)) {
+            const saved = await addAnimeEpisodes({
+              animeDocId: tracked.id,
+              anilistId: media.id,
+              episode: ep.episode,
+              airingAt: new Date(ep.airingAt * 1000).toISOString(),
+            })
+            if (saved) totalNew++
+          }
+        }
+        if (schedule.length > 0) {
+          const maxEp = Math.max(...schedule.map((s) => s.episode), tracked.lastNotifiedEpisode || 0)
+          if (maxEp > (tracked.lastNotifiedEpisode || 0)) {
+            await update(tracked.id, { lastNotifiedEpisode: maxEp })
+            addNotificationHistory({
+              type: 'new_episode',
+              seriesName: tracked.title,
+              title: `${tracked.title} - Episode ${maxEp} available`,
+              message: `New episode has been detected for ${tracked.title}.`,
+            }).catch(() => {})
+          }
+        }
+      }
+      if (totalNew > 0) {
+        toast(`Found ${totalNew} new episode(s)!`, 'success')
+      } else {
+        toast('No new episodes found', 'info')
+      }
+    } catch (err) {
+      toast('Failed to sync anime', 'error')
+      console.error(err)
+    } finally {
+      setSyncingAnime(false)
+    }
+  }
 
   const openAddModal = () => {
     setSearchQuery('')
@@ -97,13 +148,23 @@ export default function AnimeManagement() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-dark-100">Anime</h1>
-        <button
-          onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-red-600/20"
-        >
-          <Plus className="w-4 h-4" />
-          Add Anime
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSyncAnime}
+            disabled={syncingAnime || animeList.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-dark-800 hover:bg-dark-700 disabled:opacity-50 text-dark-300 hover:text-dark-100 rounded-xl text-sm font-medium transition-all border border-dark-700/50"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncingAnime ? 'animate-spin' : ''}`} />
+            {syncingAnime ? 'Syncing...' : 'Check Episodes'}
+          </button>
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-red-600/20"
+          >
+            <Plus className="w-4 h-4" />
+            Add Anime
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4 mb-6">
