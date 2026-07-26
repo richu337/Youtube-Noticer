@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RefreshCw, Hash, Play, Film, ExternalLink, Clock } from 'lucide-react'
+import { Tv, Film, Eye, Sun, Moon, Sunrise, CalendarDays } from 'lucide-react'
 import SeriesCard from '../components/ui/SeriesCard'
 import { DashboardSkeleton } from '../components/ui/LoadingSkeleton'
 import EmptyState from '../components/ui/EmptyState'
@@ -8,27 +8,65 @@ import FilterBar from '../components/filters/FilterBar'
 import { useSeries } from '../hooks/useSeries'
 import { useCategories } from '../hooks/useCategories'
 import { useVideos } from '../hooks/useVideos'
+import { useAnime } from '../hooks/useAnime'
+import { useAnimeEpisodes } from '../hooks/useAnimeEpisodes'
 import { useRSSSync } from '../hooks/useRSSSync'
 import { getEffectiveKeywords } from '../services/rssParser'
 import { useToast } from '../components/ui/Toast'
 import { playNotificationSound } from '../utils/sound'
-import { useContinueWatching } from '../hooks/useContinueWatching'
-import { updateAnime } from '../services/db'
+
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return { text: 'Good Morning', icon: Sunrise }
+  if (h < 17) return { text: 'Good Afternoon', icon: Sun }
+  if (h < 21) return { text: 'Good Evening', icon: Moon }
+  return { text: 'Good Night', icon: Moon }
+}
+
+function getBannerGradient() {
+  const h = new Date().getHours()
+  if (h < 12) return 'from-orange-500/10 via-amber-500/5 to-transparent'
+  if (h < 17) return 'from-blue-500/10 via-cyan-500/5 to-transparent'
+  if (h < 21) return 'from-purple-500/10 via-indigo-500/5 to-transparent'
+  return 'from-dark-700/30 via-dark-800/10 to-transparent'
+}
+
+function getBannerBorder() {
+  const h = new Date().getHours()
+  if (h < 12) return 'border-orange-500/15'
+  if (h < 17) return 'border-blue-500/15'
+  if (h < 21) return 'border-purple-500/15'
+  return 'border-dark-600/20'
+}
+
+function formatDate() {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const { series, loading: seriesLoading, toggleFav, remove } = useSeries()
   const { categories } = useCategories()
-  const { videos, markWatched, markUnwatched, getForSeries } = useVideos()
+  const { videos, markWatched, markUnwatched } = useVideos()
+  const { animeList } = useAnime()
+  const { getForAnime } = useAnimeEpisodes()
   const { syncing, syncSeries } = useRSSSync()
   const toast = useToast()
-  const { items: continueWatching, logWatch } = useContinueWatching()
 
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [showWatched, setShowWatched] = useState(true)
   const [showNewOnly, setShowNewOnly] = useState(false)
   const [sortBy, setSortBy] = useState('newest')
+
+  const greeting = useMemo(() => getGreeting(), [])
+  const bannerGradient = useMemo(() => getBannerGradient(), [])
+  const bannerBorder = useMemo(() => getBannerBorder(), [])
 
   const categoryMap = useMemo(() => {
     const map = {}
@@ -63,6 +101,28 @@ export default function Dashboard() {
     }
     return map
   }, [videos, seriesMap])
+
+  const todayVisibleIds = useMemo(() => {
+    const today = new Date().getDay()
+    return new Set(
+      series
+        .filter((s) => !s.showDays || s.showDays.length === 0 || s.showDays.includes(today))
+        .map((s) => s.id)
+    )
+  }, [series])
+
+  const unwatchedCount = useMemo(() => {
+    return videos.filter((v) => todayVisibleIds.has(v.seriesId) && !v.watched).length
+  }, [videos, todayVisibleIds])
+
+  const newAnimeCount = useMemo(() => {
+    let count = 0
+    for (const a of animeList) {
+      const episodes = getForAnime(a.id)
+      count += episodes.filter((e) => !e.watched).length
+    }
+    return count
+  }, [animeList, getForAnime])
 
   const filteredSeries = useMemo(() => {
     let result = [...series]
@@ -132,28 +192,6 @@ export default function Dashboard() {
     toast(`${seriesItem.name} updated!`, 'success')
   }, [syncSeries, toast])
 
-  const handleWatch = useCallback((video) => {
-    logWatch({
-      type: 'youtube',
-      seriesId: video.seriesId,
-      seriesName: seriesMap[video.seriesId]?.name || '',
-      videoId: video.videoId,
-      title: video.title,
-      thumbnail: video.thumbnail,
-      youtubeUrl: video.youtubeUrl,
-    })
-  }, [logWatch, seriesMap])
-
-  const handleUpdateAnimeProgress = async (animeId, episode) => {
-    await updateAnime(animeId, { lastWatchedEpisode: episode })
-    logWatch({
-      type: 'anime',
-      animeDocId: animeId,
-      episode,
-    })
-    toast(`Episode ${episode} marked as watched`, 'success')
-  }
-
   const handleDelete = useCallback(async (id) => {
     const confirmed = window.confirm('Delete this series and all its videos?')
     if (!confirmed) return
@@ -170,72 +208,55 @@ export default function Dashboard() {
     )
   }
 
+  const GreetingIcon = greeting.icon
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-dark-100">Dashboard</h1>
-        <span className="text-sm text-dark-400 bg-dark-800/50 px-3 py-1 rounded-lg">
-          {filteredSeries.length} series
-        </span>
-      </div>
-
-      {continueWatching.length > 0 && (
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4 text-dark-400" />
-            <h2 className="text-sm font-semibold text-dark-200 uppercase tracking-wider">Continue Watching</h2>
+      <div
+        className={`relative mb-8 p-6 rounded-2xl bg-gradient-to-br ${bannerGradient} border ${bannerBorder} backdrop-blur-sm overflow-hidden`}
+      >
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2 rounded-xl bg-dark-800/40 backdrop-blur-sm border border-dark-600/20">
+              <GreetingIcon className="w-5 h-5 text-dark-200" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-dark-100">{greeting.text}</h1>
+              <p className="text-xs text-dark-400 mt-0.5">
+                <CalendarDays className="w-3 h-3 inline mr-1 -mt-0.5" />
+                {formatDate()}
+              </p>
+            </div>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-            {continueWatching.slice(0, 5).map((item) => (
-              <div
-                key={item.id}
-                className="flex-shrink-0 w-56 bg-dark-850/80 backdrop-blur-md border border-dark-700/50 rounded-xl overflow-hidden hover:border-dark-600/50 transition-all"
-              >
-                {item.type === 'youtube' && (
-                  <>
-                    <div className="aspect-video bg-dark-800 relative overflow-hidden">
-                      {item.thumbnail ? (
-                        <img src={item.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Play className="w-8 h-8 text-dark-600" />
-                        </div>
-                      )}
-                      <a
-                        href={item.youtubeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-red-600/90 flex items-center justify-center">
-                          <ExternalLink className="w-4 h-4 text-white" />
-                        </div>
-                      </a>
-                    </div>
-                    <div className="p-3">
-                      <p className="text-xs font-medium text-dark-100 truncate">{item.title}</p>
-                      <p className="text-[10px] text-dark-400 mt-0.5 truncate">{item.seriesName}</p>
-                    </div>
-                  </>
-                )}
-                {item.type === 'anime' && (
-                  <div className="p-3 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-purple-500/15 flex items-center justify-center flex-shrink-0">
-                      <Film className="w-4 h-4 text-purple-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-dark-100 truncate">{item.seriesName}</p>
-                      {item.episode && (
-                        <p className="text-[10px] text-dark-400">Episode {item.episode}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
+
+          <div className="flex gap-4 mt-5 flex-wrap">
+            <button
+              onClick={() => setShowNewOnly(true)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl backdrop-blur-sm border transition-all duration-200 ${
+                showNewOnly
+                  ? 'bg-blue-500/20 border-blue-500/30'
+                  : 'bg-dark-800/30 border-dark-600/15 hover:bg-dark-700/40'
+              }`}
+            >
+              <Eye className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium text-dark-200">{unwatchedCount} Unwatched</span>
+            </button>
+            <button
+              onClick={() => { setShowNewOnly(false); setSelectedCategory(null); setSearch('') }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dark-800/30 backdrop-blur-sm border border-dark-600/15 hover:bg-dark-700/40 transition-all duration-200"
+            >
+              <Tv className="w-4 h-4 text-green-400" />
+              <span className="text-sm font-medium text-dark-200">{series.length} Series</span>
+            </button>
+            {newAnimeCount > 0 && (
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dark-800/30 backdrop-blur-sm border border-dark-600/15">
+                <Film className="w-4 h-4 text-purple-400" />
+                <span className="text-sm font-medium text-dark-200">{newAnimeCount} New Anime</span>
               </div>
-            ))}
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       <FilterBar
         search={search}
@@ -254,17 +275,42 @@ export default function Dashboard() {
       <div className="mt-6">
         {filteredSeries.length === 0 ? (
           <EmptyState
-            icon="inbox"
-            title="No series found"
+            icon={search || selectedCategory ? 'search' : series.length === 0 ? 'tv' : 'smile'}
+            title={
+              search || selectedCategory
+                ? 'No series match your filters'
+                : series.length === 0
+                  ? 'No series tracked yet'
+                  : 'You\'re all caught up!'
+            }
             description={
-              series.length === 0
-                ? 'Add your first series to start tracking YouTube videos.'
-                : 'Try changing your search or filter settings.'
+              search || selectedCategory
+                ? 'Try a different search or clear your filters.'
+                : series.length === 0
+                  ? 'Add a series to start tracking YouTube videos.'
+                  : 'No new uploads today. Enjoy your free time!'
+            }
+            action={
+              series.length === 0 && !search && !selectedCategory ? (
+                <button
+                  onClick={() => navigate('/series')}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-medium transition-all"
+                >
+                  Add Your First Series
+                </button>
+              ) : (search || selectedCategory) ? (
+                <button
+                  onClick={() => { setSearch(''); setSelectedCategory(null) }}
+                  className="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-dark-200 rounded-xl text-sm font-medium transition-all"
+                >
+                  Clear Filters
+                </button>
+              ) : undefined
             }
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredSeries.map((s) => (
+            {filteredSeries.map((s, i) => (
               <SeriesCard
                 key={s.id}
                 series={s}
@@ -277,7 +323,7 @@ export default function Dashboard() {
                 onRefresh={handleRefresh}
                 onDelete={handleDelete}
                 onViewAll={() => navigate(`/series/${s.id}`)}
-                onWatch={handleWatch}
+                index={i}
               />
             ))}
           </div>

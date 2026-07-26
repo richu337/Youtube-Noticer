@@ -76,8 +76,8 @@ export default function CategoriesPage() {
       {categories.length === 0 ? (
         <EmptyState
           icon="folder"
-          title="No categories"
-          description="Create categories to organize your series."
+          title="No categories yet"
+          description="Create categories to organize your series and keep everything tidy."
           action={
             <button
               onClick={openCreate}

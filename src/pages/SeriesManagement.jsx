@@ -179,9 +179,9 @@ export default function SeriesManagement() {
 
       {filteredSeries.length === 0 ? (
         <EmptyState
-          icon="folder"
+          icon={series.length === 0 ? 'youtube' : 'search'}
           title={series.length === 0 ? 'No series yet' : 'No series match your filters'}
-          description="Add a YouTube series to start tracking its latest videos."
+          description={series.length === 0 ? 'Add a YouTube series to start tracking its latest videos.' : 'Try different filters or add a new series.'}
           action={
             <button
               onClick={openCreate}

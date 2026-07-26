@@ -257,8 +257,17 @@ export const addAnimeEpisodes = async (data) => {
   }
   return await addDoc(animeEpisodesRef, {
     ...data,
+    watched: false,
     createdAt: serverTimestamp(),
   })
+}
+
+export const markAnimeEpisodeWatched = async (id) => {
+  return await updateDoc(doc(db, 'animeEpisodes', id), { watched: true })
+}
+
+export const markAnimeEpisodeUnwatched = async (id) => {
+  return await updateDoc(doc(db, 'animeEpisodes', id), { watched: false })
 }
 
 export const deleteAnime = async (id) => {
@@ -278,40 +287,4 @@ export const addNotificationHistory = async (data) => {
     createdAt: serverTimestamp(),
   })
 }
-
-// ---- Continue Watching ----
-export const continueWatchingRef = collection(db, 'continueWatching')
-
-export const addContinueWatching = async (data) => {
-  const q = query(
-    continueWatchingRef,
-    where('type', '==', data.type),
-    where('seriesId', '==', data.seriesId || null),
-    where('animeDocId', '==', data.animeDocId || null),
-    limit(1)
-  )
-  const snap = await getDocs(q)
-  if (!snap.empty) {
-    const existing = snap.docs[0]
-    await updateDoc(doc(db, 'continueWatching', existing.id), {
-      ...data,
-      watchedAt: serverTimestamp(),
-    })
-    return { id: existing.id, ...existing.data(), ...data }
-  }
-  return await addDoc(continueWatchingRef, {
-    ...data,
-    watchedAt: serverTimestamp(),
-  })
-}
-
-export const onContinueWatchingSnapshot = (callback) => {
-  return onSnapshot(
-    query(continueWatchingRef, orderBy('watchedAt', 'desc'), limit(10)),
-    (snap) => {
-      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    }
-  )
-}
-
 export { db }

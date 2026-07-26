@@ -1,16 +1,14 @@
 import { useState } from 'react'
-import { Trash2, ExternalLink, Film } from 'lucide-react'
+import { Trash2, ExternalLink, Film, Eye, EyeOff } from 'lucide-react'
 import Badge from './Badge'
-import { timeAgo, formatDate } from '../../utils/helpers'
+import { timeAgo } from '../../utils/helpers'
 
-export default function AnimeCard({ anime, episodes = [], onDelete, onUpdateProgress }) {
+export default function AnimeCard({ anime, episodes = [], onDelete, onMarkEpisodeWatched, onMarkEpisodeUnwatched }) {
   const [imgError, setImgError] = useState(false)
-  const latestEpisode = episodes.length > 0 ? episodes[0] : null
-  const totalNotified = episodes.length
   const isCurrentlyAiring = anime.status === 'RELEASING'
-  const lastWatched = anime.lastWatchedEpisode || 0
-  const unwatched = totalNotified - lastWatched
-  const progress = totalNotified > 0 ? Math.round((lastWatched / totalNotified) * 100) : 0
+  const watchedCount = episodes.filter((e) => e.watched).length
+  const totalNotified = episodes.length
+  const progress = totalNotified > 0 ? Math.round((watchedCount / totalNotified) * 100) : 0
 
   return (
     <div className="bg-dark-850/80 backdrop-blur-md border border-dark-700/50 rounded-2xl overflow-hidden hover:border-dark-600/50 transition-all group">
@@ -79,7 +77,7 @@ export default function AnimeCard({ anime, episodes = [], onDelete, onUpdateProg
           {totalNotified > 0 && (
             <div className="mt-2">
               <div className="flex items-center justify-between text-xs text-dark-400 mb-1">
-                <span>{unwatched > 0 ? `${unwatched} new` : 'All watched'}</span>
+                <span>{watchedCount} of {totalNotified} watched</span>
                 <span>{progress}%</span>
               </div>
               <div className="w-full h-1.5 bg-dark-800 rounded-full overflow-hidden">
@@ -88,33 +86,42 @@ export default function AnimeCard({ anime, episodes = [], onDelete, onUpdateProg
             </div>
           )}
 
-          {latestEpisode && (
-            <div className="mt-3 p-3 bg-dark-800/50 border border-dark-700/30 rounded-xl">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-dark-200">
-                  Episode {latestEpisode.episode}
-                </span>
-                <span className="text-xs text-dark-500">
-                  {timeAgo(latestEpisode.airingAt)}
-                </span>
-              </div>
-              {latestEpisode.airingAt && (
-                <p className="text-xs text-dark-500 mt-1">
-                  Aired: {formatDate(latestEpisode.airingAt)}
-                </p>
-              )}
-              {lastWatched < latestEpisode.episode && (
-                <button
-                  onClick={() => onUpdateProgress?.(anime.id, latestEpisode.episode)}
-                  className="mt-2 w-full py-1.5 text-xs font-medium bg-purple-600/20 text-purple-400 border border-purple-600/30 rounded-lg hover:bg-purple-600/30 transition-colors"
+          {totalNotified > 0 ? (
+            <div className="mt-3 space-y-2 max-h-[300px] overflow-y-auto">
+              {episodes.map((ep) => (
+                <div
+                  key={ep.id}
+                  className="flex items-center justify-between p-2.5 bg-dark-800/50 border border-dark-700/30 rounded-xl"
                 >
-                  Mark episode {latestEpisode.episode} as watched
-                </button>
-              )}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm font-medium text-dark-200 flex-shrink-0">
+                      Ep {ep.episode}
+                    </span>
+                    <span className="text-xs text-dark-500 truncate">
+                      {timeAgo(ep.airingAt)}
+                    </span>
+                  </div>
+                  {ep.watched ? (
+                    <button
+                      onClick={() => onMarkEpisodeUnwatched?.(ep.id)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-dark-700 text-dark-300 hover:bg-dark-600 transition-colors flex-shrink-0"
+                    >
+                      <EyeOff className="w-3 h-3" />
+                      Unwatch
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onMarkEpisodeWatched?.(ep.id, anime.id, anime.title, ep.episode)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-blue-600/20 text-blue-400 border border-blue-600/30 hover:bg-blue-600/30 transition-colors flex-shrink-0"
+                    >
+                      <Eye className="w-3 h-3" />
+                      Watched
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
-
-          {!latestEpisode && (
+          ) : (
             <div className="mt-3 py-4 text-center text-dark-500 text-sm border border-dashed border-dark-700/30 rounded-xl">
               Waiting for next episode...
             </div>

@@ -8,15 +8,13 @@ import { DashboardSkeleton } from '../components/ui/LoadingSkeleton'
 import { useAnime } from '../hooks/useAnime'
 import { useAnimeEpisodes } from '../hooks/useAnimeEpisodes'
 import { searchAnime, fetchAiringSchedules } from '../services/anilist'
-import { addAnimeEpisodes, addNotificationHistory } from '../services/db'
+import { addAnimeEpisodes, addNotificationHistory, markAnimeEpisodeWatched, markAnimeEpisodeUnwatched } from '../services/db'
 import { useToast } from '../components/ui/Toast'
-import { useContinueWatching } from '../hooks/useContinueWatching'
 
 export default function AnimeManagement() {
   const { animeList, loading, create, remove, update } = useAnime()
   const { getForAnime } = useAnimeEpisodes()
   const toast = useToast()
-  const { logWatch } = useContinueWatching()
   const [syncingAnime, setSyncingAnime] = useState(false)
 
   const [search, setSearch] = useState('')
@@ -131,10 +129,14 @@ export default function AnimeManagement() {
     }
   }
 
-  const handleUpdateProgress = async (animeId, episode) => {
-    await update(animeId, { lastWatchedEpisode: episode })
-    logWatch({ type: 'anime', animeDocId: animeId, seriesName: animeList.find((a) => a.id === animeId)?.title, episode })
+  const handleMarkEpisodeWatched = async (episodeId, animeId, title, episode) => {
+    await markAnimeEpisodeWatched(episodeId)
     toast(`Episode ${episode} marked as watched`, 'success')
+  }
+
+  const handleMarkEpisodeUnwatched = async (episodeId) => {
+    await markAnimeEpisodeUnwatched(episodeId)
+    toast('Episode marked as unwatched', 'info')
   }
 
   const handleDelete = async (id, title) => {
@@ -185,9 +187,9 @@ export default function AnimeManagement() {
 
       {filteredAnime.length === 0 ? (
         <EmptyState
-          icon="inbox"
+          icon={animeList.length === 0 ? 'tv' : 'search'}
           title={animeList.length === 0 ? 'No anime tracked yet' : 'No anime match your search'}
-          description="Add anime to get notified when new episodes air."
+          description={animeList.length === 0 ? 'Add anime to get notified when new episodes air.' : 'Try a different search term or clear your search.'}
           action={
             <button
               onClick={openAddModal}
@@ -206,7 +208,8 @@ export default function AnimeManagement() {
               anime={a}
               episodes={getForAnime(a.id)}
               onDelete={handleDelete}
-              onUpdateProgress={handleUpdateProgress}
+              onMarkEpisodeWatched={handleMarkEpisodeWatched}
+              onMarkEpisodeUnwatched={handleMarkEpisodeUnwatched}
             />
           ))}
         </div>

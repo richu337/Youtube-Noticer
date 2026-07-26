@@ -57,7 +57,7 @@ export default function SeriesVideos() {
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
         </button>
-        <EmptyState icon="inbox" title="Series not found" description="This series may have been deleted." />
+        <EmptyState icon="search" title="Series not found" description="This series may have been deleted or the link is no longer valid." />
       </div>
     )
   }
@@ -97,7 +97,7 @@ export default function SeriesVideos() {
       </div>
 
       {seriesVideos.length === 0 ? (
-        <EmptyState icon="inbox" title="No videos yet" description="Pull to refresh to fetch the latest videos." />
+        <EmptyState icon="youtube" title="No videos found" description="This series has no videos yet. Pull to refresh and check for new uploads." />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {seriesVideos.map((video) => (

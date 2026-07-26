@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Star, StarOff, Youtube, RefreshCw, Trash2 } from 'lucide-react'
+import { Star, StarOff, Youtube, RefreshCw, Trash2, Eye } from 'lucide-react'
 import VideoCard from './VideoCard'
 import Badge from './Badge'
 import { cn, getCategoryColor } from '../../utils/helpers'
@@ -16,19 +16,25 @@ export default function SeriesCard({
   onDelete,
   onViewAll,
   onWatch,
+  index = 0,
 }) {
   const [expanded, setExpanded] = useState(false)
   const color = getCategoryColor(categoryName || '')
+  const unwatchedCount = videos.filter((v) => !v.watched).length
 
   return (
     <div
       className={cn(
-        'rounded-2xl overflow-hidden border transition-all duration-300',
-        'bg-dark-850/80 backdrop-blur-md shadow-xl hover:shadow-2xl',
+        'rounded-2xl overflow-hidden border transition-all duration-300 ease-out',
+        'bg-dark-850/80 backdrop-blur-md',
+        'hover:-translate-y-1 hover:shadow-2xl hover:scale-[1.02]',
+        'active:scale-[0.98]',
+        'animate-fade-in',
         series.favorite
           ? 'border-yellow-500/30 ring-1 ring-yellow-500/10'
           : 'border-dark-700/50'
       )}
+      style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="p-4">
         <div className="flex items-start justify-between mb-2">
@@ -39,6 +45,12 @@ export default function SeriesCard({
               </h3>
               {series.favorite && (
                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 flex-shrink-0" />
+              )}
+              {unwatchedCount > 0 && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/15 text-blue-400 border border-blue-500/20 flex-shrink-0 ml-auto">
+                  <Eye className="w-3 h-3" />
+                  {unwatchedCount}
+                </span>
               )}
             </div>
 
