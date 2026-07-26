@@ -22,7 +22,7 @@ export default function FilterBar({
           <SearchBar
             value={search}
             onChange={onSearchChange}
-            placeholder="Search series..."
+            placeholder="Search series or videos..."
           />
         </div>
 

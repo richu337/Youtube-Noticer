@@ -66,10 +66,10 @@ export default function Dashboard() {
 
     if (search) {
       const q = search.toLowerCase()
-      result = result.filter(
-        (s) =>
-          s.name?.toLowerCase().includes(q) ||
-          s.channelName?.toLowerCase().includes(q)
+      result = result.filter((s) =>
+        s.name?.toLowerCase().includes(q) ||
+        s.channelName?.toLowerCase().includes(q) ||
+        videos.some((v) => v.seriesId === s.id && v.title?.toLowerCase().includes(q))
       )
     }
 
