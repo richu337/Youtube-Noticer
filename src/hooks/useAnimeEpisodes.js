@@ -14,7 +14,9 @@ export function useAnimeEpisodes() {
   }, [])
 
   const getForAnime = (animeDocId) => {
-    return episodes.filter((e) => e.animeDocId === animeDocId)
+    return episodes
+      .filter((e) => e.animeDocId === animeDocId)
+      .sort((a, b) => (b.episode || 0) - (a.episode || 0))
   }
 
   return { episodes, loading, getForAnime }
