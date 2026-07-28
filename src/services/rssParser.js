@@ -30,50 +30,49 @@ const parseRSSItem = (item) => {
   }
 }
 
+const fetchAndParse = async (url) => {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+  const xmlText = await response.text()
+  const parser = new DOMParser()
+  const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
+  const items = xmlDoc.getElementsByTagName('entry')
+  const entries = []
+
+  for (let i = 0; i < items.length; i++) {
+    entries.push(parseRSSItem(items[i]))
+  }
+
+  return entries
+}
+
 export const fetchChannelRSS = async (channelId) => {
   const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
   const proxyUrl = import.meta.env.VITE_RSS_PROXY_URL
 
-  const fetchUrl = proxyUrl
-    ? `${proxyUrl}?url=${encodeURIComponent(rssUrl)}`
-    : `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`
+  const urls = []
+
+  if (proxyUrl) {
+    urls.push(`${proxyUrl}?url=${encodeURIComponent(rssUrl)}`)
+  }
+
+  urls.push(`/youtube-rss?channel_id=${channelId}`)
+  urls.push(`https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`)
+
+  for (const url of urls) {
+    try {
+      return await fetchAndParse(url)
+    } catch (error) {
+      console.warn(`RSS fetch failed for ${url}:`, error)
+    }
+  }
 
   try {
-    const response = await fetch(fetchUrl, { mode: 'cors' })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-
-    const xmlText = await response.text()
-    const parser = new DOMParser()
-    const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
-    const items = xmlDoc.getElementsByTagName('entry')
-    const entries = []
-
-    for (let i = 0; i < items.length; i++) {
-      entries.push(parseRSSItem(items[i]))
-    }
-
-    return entries
-  } catch (error) {
-    console.error(`RSS fetch failed for channel ${channelId}:`, error)
-
-    try {
-      const response = await fetch(rssUrl)
-      if (!response.ok) throw new Error(`Direct fetch HTTP ${response.status}`)
-      const xmlText = await response.text()
-      const parser = new DOMParser()
-      const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
-      const items = xmlDoc.getElementsByTagName('entry')
-      const entries = []
-
-      for (let i = 0; i < items.length; i++) {
-        entries.push(parseRSSItem(items[i]))
-      }
-
-      return entries
-    } catch (directError) {
-      console.error('Direct RSS fetch also failed:', directError)
-      return []
-    }
+    return await fetchAndParse(rssUrl)
+  } catch (directError) {
+    console.error('Direct RSS fetch also failed:', directError)
+    return []
   }
 }
 
