@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ToastProvider } from './components/ui/Toast'
+import SplashScreen from './components/ui/SplashScreen'
 import AppLayout from './components/layout/AppLayout'
 import Dashboard from './pages/Dashboard'
 import SeriesManagement from './pages/SeriesManagement'
@@ -31,7 +32,12 @@ function useRegisterSW() {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true)
   useRegisterSW()
+
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />
+  }
 
   return (
     <BrowserRouter>
