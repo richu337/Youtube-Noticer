@@ -1,16 +1,18 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Tv, Film, Eye, Sun, Moon, Sunrise, CalendarDays } from 'lucide-react'
 import SeriesCard from '../components/ui/SeriesCard'
 import { DashboardSkeleton } from '../components/ui/LoadingSkeleton'
 import EmptyState from '../components/ui/EmptyState'
 import FilterBar from '../components/filters/FilterBar'
+import DashboardWidgets from '../components/dashboard/DashboardWidgets'
 import { useSeries } from '../hooks/useSeries'
 import { useCategories } from '../hooks/useCategories'
 import { useVideos } from '../hooks/useVideos'
 import { useAnime } from '../hooks/useAnime'
 import { useAnimeEpisodes } from '../hooks/useAnimeEpisodes'
 import { useRSSSync } from '../hooks/useRSSSync'
+import { useSettings } from '../hooks/useSettings'
 import { getEffectiveKeywords } from '../services/rssParser'
 import { useToast } from '../components/ui/Toast'
 import { playNotificationSound } from '../utils/sound'
@@ -50,19 +52,43 @@ function formatDate() {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { series, loading: seriesLoading, toggleFav, remove } = useSeries()
   const { categories } = useCategories()
   const { videos, markWatched, markUnwatched } = useVideos()
   const { animeList } = useAnime()
-  const { getForAnime } = useAnimeEpisodes()
+  const { episodes, getForAnime } = useAnimeEpisodes()
   const { syncing, syncSeries } = useRSSSync()
+  const { settings } = useSettings()
   const toast = useToast()
 
-  const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [search, setSearch] = useState(searchParams.get('search') || '')
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || null)
   const [showWatched, setShowWatched] = useState(true)
   const [showNewOnly, setShowNewOnly] = useState(false)
   const [sortBy, setSortBy] = useState('newest')
+
+  const layout = settings.dashboardLayout || {
+    sections: [
+      { id: 'hero-banner', enabled: true },
+      { id: 'dashboard-widgets', enabled: true },
+      { id: 'filter-bar', enabled: true },
+      { id: 'series-grid', enabled: true },
+    ],
+    layoutMode: 'comfortable',
+    cardRadius: 16,
+    cardSpacing: 24,
+  }
+
+  const cardRadiusStyle = layout.cardRadius ? `${layout.cardRadius}px` : undefined
+  const spacingValue = layout.cardSpacing || 24
+
+  const sectionOrders = layout.sections || []
+  const enabledSections = sectionOrders.filter((s) => s.enabled).map((s) => s.id)
+
+  const useCompact = layout.layoutMode === 'compact'
+  const useSpacious = layout.layoutMode === 'spacious'
+  const gridDensity = layout.gridDensity || 'normal'
 
   const greeting = useMemo(() => getGreeting(), [])
   const bannerGradient = useMemo(() => getBannerGradient(), [])
@@ -115,11 +141,15 @@ export default function Dashboard() {
     return videos.filter((v) => todayVisibleIds.has(v.seriesId) && !v.watched).length
   }, [videos, todayVisibleIds])
 
+  const favoriteCount = useMemo(() => {
+    return series.filter((s) => s.favorite).length
+  }, [series])
+
   const newAnimeCount = useMemo(() => {
     let count = 0
     for (const a of animeList) {
-      const episodes = getForAnime(a.id)
-      count += episodes.filter((e) => !e.watched).length
+      const animeEps = getForAnime(a.id)
+      count += animeEps.filter((e) => !e.watched).length
     }
     return count
   }, [animeList, getForAnime])
@@ -211,124 +241,156 @@ export default function Dashboard() {
   const GreetingIcon = greeting.icon
 
   return (
-    <div>
-      <div
-        className={`relative mb-8 p-6 rounded-2xl bg-gradient-to-br ${bannerGradient} border ${bannerBorder} backdrop-blur-sm overflow-hidden`}
-      >
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="p-2 rounded-xl bg-dark-800/40 backdrop-blur-sm border border-dark-600/20">
-              <GreetingIcon className="w-5 h-5 text-dark-200" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-dark-100">{greeting.text}</h1>
-              <p className="text-xs text-dark-400 mt-0.5">
-                <CalendarDays className="w-3 h-3 inline mr-1 -mt-0.5" />
-                {formatDate()}
-              </p>
-            </div>
-          </div>
+    <div className={`animate-fade-in ${useCompact ? 'space-y-4' : useSpacious ? 'space-y-8' : 'space-y-6'}`}>
 
-          <div className="flex gap-4 mt-5 flex-wrap">
-            <button
-              onClick={() => setShowNewOnly(true)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl backdrop-blur-sm border transition-all duration-200 ${
-                showNewOnly
-                  ? 'bg-blue-500/20 border-blue-500/30'
-                  : 'bg-dark-800/30 border-dark-600/15 hover:bg-dark-700/40'
-              }`}
-            >
-              <Eye className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-medium text-dark-200">{unwatchedCount} Unwatched</span>
-            </button>
-            <button
-              onClick={() => { setShowNewOnly(false); setSelectedCategory(null); setSearch('') }}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dark-800/30 backdrop-blur-sm border border-dark-600/15 hover:bg-dark-700/40 transition-all duration-200"
-            >
-              <Tv className="w-4 h-4 text-green-400" />
-              <span className="text-sm font-medium text-dark-200">{series.length} Series</span>
-            </button>
-            {newAnimeCount > 0 && (
-              <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dark-800/30 backdrop-blur-sm border border-dark-600/15">
-                <Film className="w-4 h-4 text-purple-400" />
-                <span className="text-sm font-medium text-dark-200">{newAnimeCount} New Anime</span>
+      {enabledSections.includes('hero-banner') && (
+        <div
+          className={`relative p-6 rounded-2xl bg-gradient-to-br ${bannerGradient} border ${bannerBorder} backdrop-blur-sm overflow-hidden ${
+            useCompact ? 'p-4' : useSpacious ? 'p-8' : 'p-6'
+          }`}
+          style={cardRadiusStyle ? { borderRadius: cardRadiusStyle } : undefined}
+        >
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="p-2 rounded-xl bg-dark-800/40 backdrop-blur-sm border border-dark-600/20">
+                <GreetingIcon className="w-5 h-5 text-dark-200" />
               </div>
-            )}
+              <div>
+                <h1 className="text-xl font-bold text-dark-100">{greeting.text}</h1>
+                <p className="text-xs text-dark-400 mt-0.5">
+                  <CalendarDays className="w-3 h-3 inline mr-1 -mt-0.5" />
+                  {formatDate()}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-5 flex-wrap">
+              <button
+                onClick={() => setShowNewOnly(true)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl backdrop-blur-sm border transition-all duration-200 ${
+                  showNewOnly
+                    ? 'bg-blue-500/20 border-blue-500/30'
+                    : 'bg-dark-800/30 border-dark-600/15 hover:bg-dark-700/40'
+                }`}
+              >
+                <Eye className="w-4 h-4 text-blue-400" />
+                <span className="text-sm font-medium text-dark-200">{unwatchedCount} Unwatched</span>
+              </button>
+              <button
+                onClick={() => { setShowNewOnly(false); setSelectedCategory(null); setSearch('') }}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dark-800/30 backdrop-blur-sm border border-dark-600/15 hover:bg-dark-700/40 transition-all duration-200"
+              >
+                <Tv className="w-4 h-4 text-green-400" />
+                <span className="text-sm font-medium text-dark-200">{series.length} Series</span>
+              </button>
+              {newAnimeCount > 0 && (
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dark-800/30 backdrop-blur-sm border border-dark-600/15">
+                  <Film className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm font-medium text-dark-200">{newAnimeCount} New Anime</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
-        showWatched={showWatched}
-        onToggleWatched={() => setShowWatched(!showWatched)}
-        showNewOnly={showNewOnly}
-        onToggleNewOnly={() => setShowNewOnly(!showNewOnly)}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-      />
+      {enabledSections.includes('dashboard-widgets') && (
+        <DashboardWidgets
+          unwatchedCount={unwatchedCount}
+          animeList={animeList}
+          favoriteCount={favoriteCount}
+          episodes={episodes}
+          onShowNewOnly={() => setShowNewOnly(true)}
+        />
+      )}
 
-      <div className="mt-6">
-        {filteredSeries.length === 0 ? (
-          <EmptyState
-            icon={search || selectedCategory ? 'search' : series.length === 0 ? 'tv' : 'smile'}
-            title={
-              search || selectedCategory
-                ? 'No series match your filters'
-                : series.length === 0
-                  ? 'No series tracked yet'
-                  : 'You\'re all caught up!'
-            }
-            description={
-              search || selectedCategory
-                ? 'Try a different search or clear your filters.'
-                : series.length === 0
-                  ? 'Add a series to start tracking YouTube videos.'
-                  : 'No new uploads today. Enjoy your free time!'
-            }
-            action={
-              series.length === 0 && !search && !selectedCategory ? (
-                <button
-                  onClick={() => navigate('/series')}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-medium transition-all"
-                >
-                  Add Your First Series
-                </button>
-              ) : (search || selectedCategory) ? (
-                <button
-                  onClick={() => { setSearch(''); setSelectedCategory(null) }}
-                  className="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-dark-200 rounded-xl text-sm font-medium transition-all"
-                >
-                  Clear Filters
-                </button>
-              ) : undefined
-            }
-          />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredSeries.map((s, i) => (
-              <SeriesCard
-                key={s.id}
-                series={s}
-                categoryName={categoryMap[s.categoryId]}
-                videos={videosBySeries[s.id] || []}
-                totalVideos={videos.filter((v) => v.seriesId === s.id).length}
-                onToggleFavorite={toggleFav}
-                onMarkWatched={markWatched}
-                onMarkUnwatched={markUnwatched}
-                onRefresh={handleRefresh}
-                onDelete={handleDelete}
-                onViewAll={() => navigate(`/series/${s.id}`)}
-                index={i}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {enabledSections.includes('filter-bar') && (
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          showWatched={showWatched}
+          onToggleWatched={() => setShowWatched(!showWatched)}
+          showNewOnly={showNewOnly}
+          onToggleNewOnly={() => setShowNewOnly(!showNewOnly)}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+        />
+      )}
+
+      {enabledSections.includes('series-grid') && (
+        <div className="mt-6">
+          {filteredSeries.length === 0 ? (
+            <EmptyState
+              icon={search || selectedCategory ? 'search' : series.length === 0 ? 'tv' : 'smile'}
+              title={
+                search || selectedCategory
+                  ? 'No series match your filters'
+                  : series.length === 0
+                    ? 'No series tracked yet'
+                    : 'You\'re all caught up!'
+              }
+              description={
+                search || selectedCategory
+                  ? 'Try a different search or clear your filters.'
+                  : series.length === 0
+                    ? 'Add a series to start tracking YouTube videos.'
+                    : 'No new uploads today. Enjoy your free time!'
+              }
+              action={
+                series.length === 0 && !search && !selectedCategory ? (
+                  <button
+                    onClick={() => navigate('/series')}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-medium transition-all"
+                  >
+                    Add Your First Series
+                  </button>
+                ) : (search || selectedCategory) ? (
+                  <button
+                    onClick={() => { setSearch(''); setSelectedCategory(null) }}
+                    className="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-dark-200 rounded-xl text-sm font-medium transition-all"
+                  >
+                    Clear Filters
+                  </button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div
+              className={`grid gap-6 ${
+                gridDensity === 'compact'
+                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                  : gridDensity === 'spacious'
+                    ? 'grid-cols-1 lg:grid-cols-2'
+                    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+              }`}
+              style={{
+                gap: spacingValue ? `${spacingValue}px` : undefined,
+                borderRadius: cardRadiusStyle,
+              }}
+            >
+              {filteredSeries.map((s, i) => (
+                <SeriesCard
+                  key={s.id}
+                  series={s}
+                  categoryName={categoryMap[s.categoryId]}
+                  videos={videosBySeries[s.id] || []}
+                  totalVideos={videos.filter((v) => v.seriesId === s.id).length}
+                  onToggleFavorite={toggleFav}
+                  onMarkWatched={markWatched}
+                  onMarkUnwatched={markUnwatched}
+                  onRefresh={handleRefresh}
+                  onDelete={handleDelete}
+                  onViewAll={() => navigate(`/series/${s.id}`)}
+                  index={i}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

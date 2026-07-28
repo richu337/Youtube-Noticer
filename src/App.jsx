@@ -11,6 +11,8 @@ import SettingsPage from './pages/SettingsPage'
 import AnimeManagement from './pages/AnimeManagement'
 import NotificationHistory from './pages/NotificationHistory'
 import CalendarPage from './pages/Calendar'
+import ActivityFeed from './pages/ActivityFeed'
+import DashboardCustomization from './pages/DashboardCustomization'
 
 function useRegisterSW() {
   useEffect(() => {
@@ -52,6 +54,8 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/notifications" element={<NotificationHistory />} />
             <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/activity" element={<ActivityFeed />} />
+            <Route path="/customize" element={<DashboardCustomization />} />
           </Route>
         </Routes>
       </ToastProvider>

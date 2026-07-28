@@ -88,7 +88,16 @@ export const deleteSeries = async (id) => {
 }
 
 export const toggleFavorite = async (id, current) => {
-  return await updateDoc(doc(db, 'series', id), { favorite: !current })
+  const snap = await getDoc(doc(db, 'series', id))
+  const data = snap.data()
+  await updateDoc(doc(db, 'series', id), { favorite: !current })
+  const type = !current ? 'favorite_added' : 'favorite_removed'
+  addNotificationHistory({
+    type,
+    title: data?.name || 'Series',
+    message: !current ? 'Added to favorites' : 'Removed from favorites',
+    seriesId: id,
+  }).catch(() => {})
 }
 
 export const onSeriesSnapshot = (callback) => {
@@ -150,11 +159,27 @@ export const updateVideo = async (id, data) => {
 }
 
 export const markVideoWatched = async (id) => {
-  return await updateDoc(doc(db, 'videos', id), { watched: true })
+  const snap = await getDoc(doc(db, 'videos', id))
+  const data = snap.data()
+  await updateDoc(doc(db, 'videos', id), { watched: true })
+  addNotificationHistory({
+    type: 'video_watched',
+    title: data?.title || 'Marked as watched',
+    message: data?.seriesId ? data.title : 'Video marked as watched',
+    seriesId: data?.seriesId,
+  }).catch(() => {})
 }
 
 export const markVideoUnwatched = async (id) => {
-  return await updateDoc(doc(db, 'videos', id), { watched: false })
+  const snap = await getDoc(doc(db, 'videos', id))
+  const data = snap.data()
+  await updateDoc(doc(db, 'videos', id), { watched: false })
+  addNotificationHistory({
+    type: 'video_unwatched',
+    title: data?.title || 'Marked as unwatched',
+    message: data?.seriesId ? data.title : 'Video marked as unwatched',
+    seriesId: data?.seriesId,
+  }).catch(() => {})
 }
 
 export const getVideoByVideoId = async (videoId) => {

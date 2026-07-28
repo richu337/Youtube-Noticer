@@ -18,6 +18,20 @@ export function useSettings() {
     notificationsEnabled: false,
     notificationSoundUrl: '',
     theme: 'dark',
+    dashboardLayout: {
+      sections: [
+        { id: 'hero-banner', enabled: true },
+        { id: 'dashboard-widgets', enabled: true },
+        { id: 'filter-bar', enabled: true },
+        { id: 'series-grid', enabled: true },
+      ],
+      layoutMode: 'comfortable',
+      cardRadius: 16,
+      cardSpacing: 24,
+      gridDensity: 'normal',
+      accentColor: '#ef4444',
+      animationSpeed: 'normal',
+    },
   })
   const [loading, setLoading] = useState(true)
 

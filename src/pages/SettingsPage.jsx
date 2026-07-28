@@ -243,6 +243,20 @@ export default function SettingsPage() {
         </SettingCard>
 
         <SettingCard
+          icon={History}
+          title="Activity Feed"
+          description="See a timeline of all events across the app."
+        >
+          <button
+            onClick={() => navigate('/activity')}
+            className="w-full flex items-center justify-between px-4 py-3 bg-dark-800/50 border border-dark-700/30 rounded-xl hover:border-dark-600/50 transition-all text-sm text-dark-300 hover:text-dark-100"
+          >
+            <span>View activity feed</span>
+            <History className="w-4 h-4" />
+          </button>
+        </SettingCard>
+
+        <SettingCard
           icon={Database}
           title="Data Management"
           description="Clean up old videos and manage storage."

@@ -87,11 +87,19 @@ export function useRSSSync() {
       playNotificationSound(options.notificationSoundUrl)
     }
 
+    if (seriesList.length > 0) {
+      addNotificationHistory({
+        type: options.source === 'auto' ? 'sync_auto' : 'sync_manual',
+        title: `${totalNew > 0 ? `${totalNew} new video(s)` : 'No new videos'} (${total} series)`,
+        message: totalNew > 0 ? 'New videos were found during sync' : 'No new uploads found',
+      }).catch(() => {})
+    }
+
     setProgress('Sync complete!')
     setSyncing(false)
     setProgress('')
 
-    return true
+    return totalNew
   }, [syncSeries])
 
   const cleanupOldVideos = useCallback(async (days = 30) => {
