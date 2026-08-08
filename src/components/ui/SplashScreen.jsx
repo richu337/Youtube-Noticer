@@ -51,7 +51,7 @@ export default function SplashScreen({ onFinish }) {
           phase === 'enter' ? 'opacity-0 translate-y-2' : phase === 'glow' ? 'opacity-100 translate-y-0 text-dark-100' : 'opacity-0 translate-y-2 text-dark-100'
         }`}
       >
-        YouTube Noticer
+        MediaPulse
       </h1>
     </div>
   )

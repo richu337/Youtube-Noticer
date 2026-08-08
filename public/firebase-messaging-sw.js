@@ -26,7 +26,7 @@ const messaging = firebase.messaging()
 
 messaging.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification || {}
-  self.registration.showNotification(title || 'YouTube Noticer', {
+  self.registration.showNotification(title || 'MediaPulse', {
     body: body || '',
     icon: '/icon-192.png',
   })

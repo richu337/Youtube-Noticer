@@ -27,7 +27,7 @@ export function usePushNotifications() {
       console.log('Foreground push:', payload)
       const { title, body } = payload.notification || {}
       if (Notification.permission === 'granted') {
-        new Notification(title || 'YouTube Noticer', {
+        new Notification(title || 'MediaPulse', {
           body: body || '',
           icon: '/icon-192.png',
         })

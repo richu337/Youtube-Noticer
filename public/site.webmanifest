@@ -1,6 +1,6 @@
 {
-  "name": "YouTube Noticer",
-  "short_name": "YT Noticer",
+  "name": "MediaPulse",
+  "short_name": "MediaPulse",
   "description": "Track your favorite YouTube series",
   "start_url": "/",
   "display": "standalone",

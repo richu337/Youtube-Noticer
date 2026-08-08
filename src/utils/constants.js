@@ -1,4 +1,4 @@
-export const APP_NAME = 'YouTube Noticer'
+export const APP_NAME = 'MediaPulse'
 export const APP_VERSION = '1.0.0'
 
 export const RSS_BASE_URL = 'https://www.youtube.com/feeds/videos.xml?channel_id='

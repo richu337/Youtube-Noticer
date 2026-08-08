@@ -30,7 +30,7 @@ export default function Navbar({ onSync, syncing, onSearchOpen }) {
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
         <div className="hidden md:flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">YN</span>
+            <span className="text-white font-bold text-sm">MP</span>
           </div>
           <span className="text-dark-100 font-semibold text-lg">{APP_NAME}</span>
         </div>
