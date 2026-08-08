@@ -374,4 +374,21 @@ http
     console.log(`[Server] Health endpoint listening on port ${PORT}`)
   })
 
+const SELF_URL = process.env.SELF_URL || process.env.RENDER_EXTERNAL_URL || ''
+if (SELF_URL) {
+  const pingSelf = async () => {
+    try {
+      const res = await fetch(SELF_URL)
+      if (!res.ok) console.warn(`[KeepAlive] Self-ping returned HTTP ${res.status}`)
+    } catch (err) {
+      console.warn('[KeepAlive] Self-ping failed:', err.message)
+    }
+  }
+  setInterval(pingSelf, 10 * 60 * 1000)
+  pingSelf()
+  console.log(`[KeepAlive] Self-ping enabled every 10 min -> ${SELF_URL}`)
+} else {
+  console.log('[KeepAlive] No SELF_URL set; use an external pinger (e.g. cron-job.org) to keep the service awake')
+}
+
 console.log('[Server] Push notification schedulers started (every 30 min)')

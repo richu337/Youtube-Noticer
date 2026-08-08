@@ -28,6 +28,6 @@ messaging.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification || {}
   self.registration.showNotification(title || 'YouTube Noticer', {
     body: body || '',
-    icon: '/favicon.svg',
+    icon: '/icon-192.png',
   })
 })

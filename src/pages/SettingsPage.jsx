@@ -204,7 +204,7 @@ export default function SettingsPage() {
                 <input
                   type="text"
                   placeholder="https://example.com/sound.mp3"
-                  value={settings.notificationSoundUrl}
+                  value={settings.notificationSoundUrl ?? ''}
                   onChange={(e) => handleToggle('notificationSoundUrl', e.target.value)}
                   className="flex-1 px-3 py-1.5 bg-dark-800 border border-dark-700/50 rounded-lg text-sm text-dark-100 focus:outline-none focus:border-red-500/50"
                 />

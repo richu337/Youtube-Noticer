@@ -14,11 +14,13 @@ const icons = {
   info: AlertCircle,
 }
 
+let toastId = 0
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
 
   const addToast = useCallback((message, type = 'info', duration = 3000) => {
-    const id = Date.now()
+    const id = ++toastId
     setToasts((prev) => [...prev, { id, message, type }])
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))

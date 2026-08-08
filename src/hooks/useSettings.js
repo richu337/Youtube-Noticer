@@ -52,7 +52,7 @@ export function useSettings() {
 
     const unsubscribe = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        setSettings(snap.data())
+        setSettings((prev) => ({ ...prev, ...snap.data() }))
       }
     })
 

@@ -17,8 +17,8 @@ const parseRSSItem = (item) => {
   const title = getNodeText(item, 'title') || ''
   const publishedAt = getNodeText(item, 'published') ||
     getNodeText(item, 'pubDate') || ''
-  const author = getNodeText(item, 'author')?.name ||
-    getNodeText(item, 'author') || ''
+  const authorNode = item.getElementsByTagName('author')[0]
+  const author = authorNode?.getElementsByTagName('name')[0]?.textContent || ''
 
   return {
     videoId,
@@ -37,6 +37,12 @@ const fetchAndParse = async (url) => {
   const xmlText = await response.text()
   const parser = new DOMParser()
   const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
+
+  const root = xmlDoc.documentElement
+  if (!root || root.nodeName !== 'feed') {
+    throw new Error(`Response is not an RSS feed: ${url}`)
+  }
+
   const items = xmlDoc.getElementsByTagName('entry')
   const entries = []
 
@@ -62,7 +68,8 @@ export const fetchChannelRSS = async (channelId) => {
 
   for (const url of urls) {
     try {
-      return await fetchAndParse(url)
+      const entries = await fetchAndParse(url)
+      if (entries.length > 0) return entries
     } catch (error) {
       console.warn(`RSS fetch failed for ${url}:`, error)
     }

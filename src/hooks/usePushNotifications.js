@@ -25,6 +25,13 @@ export function usePushNotifications() {
 
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('Foreground push:', payload)
+      const { title, body } = payload.notification || {}
+      if (Notification.permission === 'granted') {
+        new Notification(title || 'YouTube Noticer', {
+          body: body || '',
+          icon: '/icon-192.png',
+        })
+      }
     })
 
     return () => unsubscribe()
@@ -37,7 +44,10 @@ export function usePushNotifications() {
       const perm = await Notification.requestPermission()
       if (perm !== 'granted') return false
 
-      const registration = await navigator.serviceWorker.getRegistration()
+      let registration = await navigator.serviceWorker.getRegistration()
+      if (!registration) {
+        registration = await navigator.serviceWorker.ready
+      }
       const fcmToken = await getToken(messaging, {
         vapidKey: VAPID_KEY,
         serviceWorkerRegistration: registration,
